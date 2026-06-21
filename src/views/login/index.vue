@@ -17,6 +17,7 @@
 
       <el-form
         ref="formRef"
+        class="login-form"
         :model="formModel"
         :rules="formRules"
         size="large"
@@ -25,6 +26,8 @@
         <el-form-item prop="username">
           <el-input
             v-model="formModel.username"
+            class="login-input"
+            :class="{ 'is-filled': !!formModel.username }"
             placeholder="请输入账号"
             :prefix-icon="User"
             clearable
@@ -33,6 +36,8 @@
         <el-form-item prop="password">
           <el-input
             v-model="formModel.password"
+            class="login-input"
+            :class="{ 'is-filled': !!formModel.password }"
             type="password"
             placeholder="请输入密码"
             :prefix-icon="Lock"
@@ -205,6 +210,38 @@ async function handleLoginSubmit() {
   &__subtitle {
     font-size: 14px;
     color: var(--color-text-secondary);
+  }
+
+  .login-form {
+    :deep(.login-input.el-input--large .el-input__wrapper) {
+      --el-input-bg-color: transparent;
+      --el-fill-color-blank: transparent;
+      padding: 1px 16px !important;
+      background-color: transparent !important;
+      box-shadow: 0 0 0 1px var(--el-input-border-color, var(--color-border)) inset;
+
+      &:hover,
+      &.is-focus {
+        background-color: transparent !important;
+      }
+    }
+
+    :deep(.login-input .el-input__inner) {
+      background-color: transparent !important;
+
+      &:-webkit-autofill,
+      &:-webkit-autofill:hover,
+      &:-webkit-autofill:focus {
+        -webkit-text-fill-color: var(--color-text-primary);
+        transition: background-color 9999s ease-out;
+        box-shadow: 0 0 0 1000px transparent inset;
+      }
+    }
+
+    /* Element Plus 默认仅 focus/hover 时 visibility:visible，有值时常态显示清除按钮 */
+    :deep(.login-input.is-filled .el-input__clear) {
+      visibility: visible !important;
+    }
   }
 }
 

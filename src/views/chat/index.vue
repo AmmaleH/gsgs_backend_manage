@@ -48,10 +48,6 @@
         </div>
 
         <div class="chat-sidebar__footer">
-          <button type="button" class="chat-sidebar__footer-btn" @click="showToast('设置功能开发中', 'info')">
-            <el-icon><Setting /></el-icon>
-            <span v-show="!isSidebarCollapsed">设置</span>
-          </button>
           <div v-show="!isSidebarCollapsed" class="chat-sidebar__user">
             <el-avatar :size="28" class="chat-sidebar__avatar">{{ userInitial }}</el-avatar>
             <span class="chat-sidebar__username">在线</span>
@@ -158,7 +154,7 @@
                 type="button"
                 class="chat-input__send-btn"
                 :disabled="!inputText.trim() || chatStore.isLoading"
-                @click="handleSend"
+                @click="handleSendClick"
               >
                 <el-icon v-if="chatStore.isLoading" class="is-loading"><Loading /></el-icon>
                 <el-icon v-else><Promotion /></el-icon>
@@ -184,7 +180,6 @@ import {
   Loading,
   Plus,
   Promotion,
-  Setting,
 } from '@element-plus/icons-vue'
 import type { ElInput } from 'element-plus'
 
@@ -209,7 +204,7 @@ const {
   isEmptyChat,
   handleScroll,
   handleKeydown,
-  handleSend,
+  handleSendClick,
   handlePromptSelect,
   handleQuickTagSelect,
   handleNewChat,
@@ -423,6 +418,10 @@ async function handleDeleteSession(id: string) {
     cursor: pointer;
     font-size: 13px;
     transition: color 0.2s, background 0.2s;
+
+    :deep(.el-icon) {
+      font-size: 20px;
+    }
 
     &:hover {
       color: chat.$chat-text-primary;

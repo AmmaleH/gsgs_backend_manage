@@ -117,23 +117,23 @@ export function useChatPage(inputRef?: Ref<InstanceType<typeof ElInput> | undefi
     }
   }
 
-  async function handleSend() {
-    const text = inputText.value.trim()
+  async function handleSend(overrideText?: string) {
+    const text = (overrideText ?? inputText.value).trim()
     if (!text || chatStore.isLoading) return
-    inputText.value = ''
+    if (overrideText === undefined) {
+      inputText.value = ''
+    }
     isNearBottom.value = true
     await chatStore.sendMessage(text)
     nextTick(scrollToBottom)
   }
 
   function handlePromptSelect(content: string) {
-    inputText.value = content
-    focusInput()
+    void handleSend(content)
   }
 
   function handleQuickTagSelect(content: string) {
-    inputText.value = content
-    handleSend()
+    void handleSend(content)
   }
 
   async function handleNewChat() {
@@ -176,6 +176,10 @@ export function useChatPage(inputRef?: Ref<InstanceType<typeof ElInput> | undefi
     navigator.clipboard.writeText(content).then(() => showToast('已复制', 'success'))
   }
 
+  function handleSendClick() {
+    void handleSend()
+  }
+
   return {
     chatStore,
     inputText,
@@ -191,6 +195,7 @@ export function useChatPage(inputRef?: Ref<InstanceType<typeof ElInput> | undefi
     handleScroll,
     handleKeydown,
     handleSend,
+    handleSendClick,
     handlePromptSelect,
     handleQuickTagSelect,
     handleNewChat,

@@ -1,5 +1,5 @@
-import type { LoginRequest, LoginResponse, ApiUser } from '@/types/api'
-import { mockGetMe, mockLogin } from '@/mock'
+import type { ChangePasswordRequest, LoginRequest, LoginResponse, ApiUser } from '@/types/api'
+import { mockChangePassword, mockGetMe, mockLogin } from '@/mock'
 
 const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true'
 
@@ -21,4 +21,13 @@ export async function logoutApi(): Promise<void> {
   if (USE_MOCK) return
   const { post } = await import('@/utils/request')
   await post('/v1/auth/logout')
+}
+
+export async function changePasswordApi(params: ChangePasswordRequest): Promise<void> {
+  if (USE_MOCK) {
+    await mockChangePassword(params)
+    return
+  }
+  const { post } = await import('@/utils/request')
+  await post('/v1/auth/change-password', params)
 }

@@ -63,6 +63,12 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/permission/index.vue'),
         meta: { title: '权限管理', permission: EPermissionCode.PERMISSION_MANAGE },
       },
+      {
+        path: 'change-password',
+        name: 'ChangePassword',
+        component: () => import('@/views/change-password/index.vue'),
+        meta: { title: '修改密码' },
+      },
     ],
   },
   {

@@ -36,6 +36,12 @@ export interface LoginResponse {
   user: ApiUser
 }
 
+/** 修改密码 */
+export interface ChangePasswordRequest {
+  oldPassword: string
+  newPassword: string
+}
+
 /** 问数任务 */
 export type RunStatus =
   | 'accepted'

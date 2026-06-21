@@ -4,6 +4,7 @@ import type {
   AdminRoleItem,
   AdminUserItem,
   ApiUser,
+  ChangePasswordRequest,
   ClarifyPayload,
   CreateRunRequest,
   CreateRunResponse,
@@ -312,6 +313,19 @@ export async function mockLogin(params: LoginRequest): Promise<LoginResponse> {
 export async function mockGetMe(): Promise<ApiUser> {
   await delay(200)
   return mockLogin({ username: 'demo', password: 'x' }).then((r) => r.user)
+}
+
+export async function mockChangePassword(params: ChangePasswordRequest): Promise<void> {
+  await delay(400)
+  if (!params.oldPassword?.trim() || !params.newPassword?.trim()) {
+    throw { code: 'INVALID_PARAM', message: '原密码和新密码不能为空', traceId: generateTraceId(), retryable: false }
+  }
+  if (params.oldPassword === params.newPassword) {
+    throw { code: 'INVALID_PARAM', message: '新密码不能与原密码相同', traceId: generateTraceId(), retryable: false }
+  }
+  if (params.oldPassword === 'wrong') {
+    throw { code: 'AUTH_FAILED', message: '原密码错误', traceId: generateTraceId(), retryable: false }
+  }
 }
 
 export function generateTraceId() {

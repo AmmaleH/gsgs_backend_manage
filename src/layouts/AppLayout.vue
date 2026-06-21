@@ -35,6 +35,13 @@
           </el-sub-menu>
         </template>
       </el-menu>
+
+      <div class="sidebar-footer">
+        <button type="button" class="sidebar-footer__btn" @click="handleOpenSettings">
+          <el-icon><Setting /></el-icon>
+          <span v-show="!isCollapsed" class="sidebar-footer__label">设置</span>
+        </button>
+      </div>
     </aside>
 
     <div class="app-layout__main">
@@ -62,7 +69,7 @@
             </div>
             <template #dropdown>
               <el-dropdown-menu>
-                <el-dropdown-item command="chat">智能对话</el-dropdown-item>
+                <el-dropdown-item command="change-password">修改密码</el-dropdown-item>
                 <el-dropdown-item divided command="logout">退出登录</el-dropdown-item>
               </el-dropdown-menu>
             </template>
@@ -98,7 +105,7 @@ import type { Component } from 'vue'
 import { usePermission } from '@/composables/usePermission'
 import { useUserStore } from '@/stores/user'
 import { getVisibleMenus } from '@/utils/menu'
-import { showConfirm } from '@/utils/message'
+import { showConfirm, showToast } from '@/utils/message'
 
 const route = useRoute()
 const router = useRouter()
@@ -131,9 +138,13 @@ async function handleCommand(command: string) {
       userStore.logout()
       router.push('/login')
     }
-  } else if (command === 'chat') {
-    router.push('/chat')
+  } else if (command === 'change-password') {
+    router.push('/change-password')
   }
+}
+
+function handleOpenSettings() {
+  showToast('设置功能开发中', 'info')
 }
 </script>
 
@@ -153,6 +164,11 @@ async function handleCommand(command: string) {
 
     &.is-collapsed {
       width: 64px;
+
+      .sidebar-footer__btn {
+        justify-content: center;
+        padding: 10px;
+      }
     }
   }
 
@@ -212,6 +228,7 @@ async function handleCommand(command: string) {
 .sidebar-menu {
   border-right: none;
   flex: 1;
+  overflow-y: auto;
   padding-top: 8px;
 
   :deep(.el-menu-item.is-active) {
@@ -230,6 +247,41 @@ async function handleCommand(command: string) {
     border-radius: 6px;
     margin: 2px 8px;
     width: calc(100% - 16px);
+  }
+}
+
+.sidebar-footer {
+  flex-shrink: 0;
+  padding: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+
+  &__btn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 10px 12px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: #a3a6b4;
+    font-size: 14px;
+    cursor: pointer;
+    transition: color 0.2s, background 0.2s;
+
+    &:hover {
+      color: #fff;
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .el-icon {
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+  }
+
+  &__label {
+    white-space: nowrap;
   }
 }
 
