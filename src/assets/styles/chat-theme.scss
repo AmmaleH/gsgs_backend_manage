@@ -1,0 +1,70 @@
+// 聊天页亮色科技风主题 token 与毛玻璃 mixin
+$chat-bg-from: #f4f5fc;
+$chat-bg-via: #edf2f7;
+$chat-bg-to: #f1f5f9;
+$chat-glass-bg: rgba(255, 255, 255, 0.45);
+$chat-glass-medium: rgba(255, 255, 255, 0.6);
+$chat-glass-light: rgba(255, 255, 255, 0.4);
+$chat-glass-strong: rgba(255, 255, 255, 0.7);
+$chat-border: rgba(255, 255, 255, 0.5);
+$chat-border-purple: rgba(243, 232, 255, 0.6);
+$chat-border-blue: rgba(219, 234, 254, 0.6);
+$chat-text-primary: #1e1b4b;
+$chat-text-secondary: #64748b;
+$chat-text-muted: #94a3b8;
+$chat-accent-purple: #8b5cf6;
+$chat-accent-indigo: #4f46e5;
+$chat-accent-cyan: #06b6d4;
+$chat-gradient-brand: linear-gradient(135deg, #a855f7 0%, #4f46e5 50%, #06b6d4 100%);
+$chat-gradient-purple: linear-gradient(135deg, #a855f7 0%, #4f46e5 100%);
+$chat-gradient-blue: linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%);
+$chat-shadow-soft: 0 8px 32px rgba(31, 38, 135, 0.04);
+$chat-shadow-purple: 0 10px 30px -5px rgba(139, 92, 246, 0.05);
+$chat-shadow-input: 0 12px 40px rgba(139, 92, 246, 0.08);
+
+@mixin chat-glass($bg: $chat-glass-bg) {
+  background: $bg;
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid $chat-border;
+  box-shadow: $chat-shadow-soft, $chat-shadow-purple;
+}
+
+@mixin chat-glass-hover {
+  background: rgba(255, 255, 255, 0.8);
+  border-color: rgba(196, 181, 253, 0.7);
+  box-shadow: 0 8px 20px rgba(168, 85, 247, 0.05);
+}
+
+@mixin chat-gradient-text {
+  background: $chat-gradient-brand;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+@mixin thinking-text-gradient {
+  background: linear-gradient(90deg, #a855f7 0%, #3b82f6 35%, #06b6d4 65%, #a855f7 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: text-gradient-flow 4s linear infinite;
+}
+
+@keyframes text-gradient-flow {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@mixin chat-focus-glow {
+  border-color: rgba(196, 181, 253, 0.9);
+  box-shadow: 0 0 15px rgba(168, 85, 247, 0.15);
+}

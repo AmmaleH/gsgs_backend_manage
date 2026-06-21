@@ -1,28 +1,31 @@
+import type { ApiErrorBody, ClarifyPayload, QueryProgress, QueryResult, RunStatus } from '@/types/api'
+
 export interface UserInfo {
   id: string
   username: string
   nickname: string
   avatar?: string
-  /** 用户角色 */
   role?: string
-  /** 权限码列表（普通账号） */
   permissions?: string[]
+  roles?: string[]
+  dataScopes?: import('@/types/api').DataScope[]
 }
 
-export interface AccountPermissionItem {
+export interface ChatMessage {
   id: string
-  username: string
-  nickname: string
-  role: string
-  permissions: string[]
-  status: number
-  updatedAt: string
-}
-
-export interface PermissionDefItem {
-  code: string
-  name: string
-  accountCount: number
+  role: 'user' | 'assistant'
+  content: string
+  createdAt: string
+  streaming?: boolean
+  traceId?: string
+  runId?: string
+  runStatus?: RunStatus
+  progress?: QueryProgress
+  result?: QueryResult
+  clarify?: ClarifyPayload
+  error?: ApiErrorBody
+  /** 待澄清时关联的 runId */
+  pendingClarifyRunId?: string
 }
 
 export interface LoginParams {
@@ -51,6 +54,7 @@ export interface PageResult<T> {
   total: number
 }
 
+/** @deprecated 使用 RoutingRuleItem */
 export interface AgentItem {
   id: string
   name: string
@@ -60,30 +64,20 @@ export interface AgentItem {
   updatedAt: string
 }
 
-export interface KnowledgeItem {
+export interface AccountPermissionItem {
   id: string
-  name: string
-  type: string
-  docCount: number
+  username: string
+  nickname: string
+  role: string
+  permissions: string[]
   status: number
   updatedAt: string
 }
 
-export interface BasicDataItem {
-  id: string
-  name: string
-  type: string
+export interface PermissionDefItem {
   code: string
-  status: number
-  updatedAt: string
-}
-
-export interface ChatMessage {
-  id: string
-  role: 'user' | 'assistant'
-  content: string
-  createdAt: string
-  streaming?: boolean
+  name: string
+  accountCount: number
 }
 
 export interface QuickTag {

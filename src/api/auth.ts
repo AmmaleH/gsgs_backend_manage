@@ -1,14 +1,24 @@
-import type { LoginParams, LoginResult } from '@/types'
-import { post } from '@/utils/request'
+import type { LoginRequest, LoginResponse, ApiUser } from '@/types/api'
+import { mockGetMe, mockLogin } from '@/mock'
 
-export function loginApi(params: LoginParams) {
-  return post<LoginResult>('/auth/login', params)
+const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true'
+
+export async function loginApi(params: LoginRequest): Promise<LoginResponse> {
+  if (USE_MOCK) return mockLogin(params)
+  const { post } = await import('@/utils/request')
+  const res = await post<LoginResponse>('/v1/auth/login', params)
+  return res.data
 }
 
-export function logoutApi() {
-  return post<void>('/auth/logout')
+export async function getMeApi(): Promise<ApiUser> {
+  if (USE_MOCK) return mockGetMe()
+  const { get } = await import('@/utils/request')
+  const res = await get<ApiUser>('/v1/auth/me')
+  return res.data
 }
 
-export function getUserInfoApi() {
-  return post<{ userInfo: LoginResult['userInfo'] }>('/auth/userinfo')
+export async function logoutApi(): Promise<void> {
+  if (USE_MOCK) return
+  const { post } = await import('@/utils/request')
+  await post('/v1/auth/logout')
 }

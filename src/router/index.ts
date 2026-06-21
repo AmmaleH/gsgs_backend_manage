@@ -34,22 +34,28 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '智能对话', permission: EPermissionCode.CHAT },
       },
       {
+        path: 'query-logs',
+        name: 'QueryLogs',
+        component: () => import('@/views/query-logs/index.vue'),
+        meta: { title: '问数审计日志', permission: EPermissionCode.QUERY_LOG_VIEW },
+      },
+      {
         path: 'agent',
         name: 'AgentManage',
         component: () => import('@/views/agent/index.vue'),
-        meta: { title: 'Agent管理', permission: EPermissionCode.AGENT_VIEW },
+        meta: { title: '场景路由规则', permission: EPermissionCode.AGENT_VIEW },
       },
       {
         path: 'knowledge',
         name: 'KnowledgeManage',
         component: () => import('@/views/knowledge/index.vue'),
-        meta: { title: '知识库管理', permission: EPermissionCode.KNOWLEDGE_VIEW },
+        meta: { title: 'Prompt 配置', permission: EPermissionCode.KNOWLEDGE_VIEW },
       },
       {
         path: 'basic-data',
         name: 'BasicDataManage',
         component: () => import('@/views/basic-data/index.vue'),
-        meta: { title: '基础数据管理', permission: EPermissionCode.BASIC_DATA_VIEW },
+        meta: { title: 'SQL 白名单', permission: EPermissionCode.BASIC_DATA_VIEW },
       },
       {
         path: 'permission',

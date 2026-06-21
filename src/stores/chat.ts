@@ -1,158 +1,253 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 
+import { createQueryRunApi, getQueryRunApi, getSessionMessagesApi, syncQueryApi } from '@/api/query'
+import type { ApiErrorBody, QueryRunDetail, RunStatus, SessionItem } from '@/types/api'
 import type { ChatMessage } from '@/types'
 import { generateId } from '@/utils/storage'
-import { streamChat, syncChat } from '@/utils/chat'
+import { showToast } from '@/utils/message'
 
 const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true'
+const TERMINAL_STATUS: RunStatus[] = ['success', 'partial', 'failed', 'blocked', 'timeout']
 
-/** 模拟历史消息 */
-const MOCK_HISTORY: ChatMessage[] = Array.from({ length: 20 }, (_, i) => ({
-  id: `history-${i}`,
-  role: i % 2 === 0 ? 'user' : 'assistant',
-  content: i % 2 === 0 ? `历史问题 ${i + 1}` : `历史回答 ${i + 1}：这是之前的对话记录。`,
-  createdAt: new Date(Date.now() - (20 - i) * 3600000).toISOString(),
-}))
+function isTerminal(status: RunStatus) {
+  return TERMINAL_STATUS.includes(status)
+}
+
+function sessionMsgToChat(msg: import('@/types/api').SessionMessage): ChatMessage {
+  return {
+    id: msg.messageId,
+    role: msg.role,
+    content: msg.content,
+    createdAt: msg.createdAt,
+    traceId: msg.traceId,
+    result: msg.resultSnapshot,
+    runStatus: msg.resultSnapshot ? 'success' : undefined,
+  }
+}
 
 export const useChatStore = defineStore('chat', () => {
   const messages = ref<ChatMessage[]>([])
-  const sessionId = ref<string>(generateId())
+  const sessionId = ref('session-001')
+  const sessions = ref<SessionItem[]>([])
   const isLoading = ref(false)
   const isLoadingHistory = ref(false)
-  const hasMoreHistory = ref(true)
-  const historyPage = ref(0)
-  const useStreamMode = ref(true)
+  const hasMoreHistory = ref(false)
+  const useAsyncMode = ref(true)
+  const activeRunId = ref<string | null>(null)
 
-  let abortController: AbortController | null = null
+  let pollTimer: ReturnType<typeof setTimeout> | null = null
 
-  async function loadHistory() {
-    if (isLoadingHistory.value || !hasMoreHistory.value) return
+  async function loadSessions() {
+    if (!USE_MOCK) return
+    const { getSessionsApi } = await import('@/api/query')
+    sessions.value = await getSessionsApi()
+  }
 
+  async function switchSession(id: string) {
+    sessionId.value = id
+    messages.value = []
     isLoadingHistory.value = true
     try {
-      if (USE_MOCK) {
-        await new Promise((r) => setTimeout(r, 500))
-        const pageSize = 10
-        const start = historyPage.value * pageSize
-        const slice = MOCK_HISTORY.slice(start, start + pageSize)
-        if (slice.length === 0) {
-          hasMoreHistory.value = false
-        } else {
-          messages.value = [...slice, ...messages.value]
-          historyPage.value += 1
-          if (start + pageSize >= MOCK_HISTORY.length) {
-            hasMoreHistory.value = false
-          }
-        }
-        return
-      }
-
-      const { getChatHistoryApi } = await import('@/api/chat')
-      const res = await getChatHistoryApi({
-        sessionId: sessionId.value,
-        page: historyPage.value + 1,
-        pageSize: 10,
-      })
-      const list = res.data.list
-      if (list.length === 0) {
-        hasMoreHistory.value = false
-      } else {
-        messages.value = [...list, ...messages.value]
-        historyPage.value += 1
-      }
+      const list = await getSessionMessagesApi(id)
+      messages.value = list.map(sessionMsgToChat)
     } finally {
       isLoadingHistory.value = false
     }
   }
 
-  async function sendMessage(content: string) {
+  async function loadHistory() {
+    if (isLoadingHistory.value) return
+    isLoadingHistory.value = true
+    try {
+      await new Promise((r) => setTimeout(r, 400))
+      showToast('当前会话已加载全部历史消息', 'info')
+      hasMoreHistory.value = false
+    } finally {
+      isLoadingHistory.value = false
+    }
+  }
+
+  function applyRunToMessage(msg: ChatMessage, run: QueryRunDetail) {
+    msg.runId = run.runId
+    msg.traceId = run.traceId
+    msg.runStatus = run.status
+    msg.progress = run.progress
+    msg.clarify = run.clarify
+    msg.error = run.error
+    msg.result = run.result
+    msg.streaming = !isTerminal(run.status) && run.status !== 'clarify'
+
+    if (run.status === 'success' || run.status === 'partial') {
+      msg.content = run.result?.summary ?? msg.content
+    } else if (run.status === 'clarify') {
+      msg.content = run.clarify?.message ?? '请补充澄清信息'
+      msg.pendingClarifyRunId = run.runId
+    } else if (run.status === 'failed' || run.status === 'timeout' || run.status === 'blocked') {
+      msg.content = run.error?.message ?? '问数失败，请稍后重试'
+    } else if (run.progress) {
+      const running = run.progress.steps.find((s) => s.status === 'running')
+      msg.content = running ? `正在${running.name}...` : '问数处理中...'
+    }
+  }
+
+  async function pollRun(runId: string, assistantMsg: ChatMessage, pollAfterMs = 800) {
+    return new Promise<void>((resolve, reject) => {
+      const poll = async () => {
+        try {
+          const run = await getQueryRunApi(runId)
+          applyRunToMessage(assistantMsg, run)
+
+          if (run.status === 'clarify') {
+            assistantMsg.streaming = false
+            activeRunId.value = runId
+            resolve()
+            return
+          }
+
+          if (isTerminal(run.status)) {
+            assistantMsg.streaming = false
+            activeRunId.value = null
+            resolve()
+            return
+          }
+
+          pollTimer = setTimeout(poll, pollAfterMs)
+        } catch (err) {
+          assistantMsg.streaming = false
+          assistantMsg.runStatus = 'failed'
+          assistantMsg.content = (err as ApiErrorBody)?.message ?? '轮询失败'
+          reject(err)
+        }
+      }
+      pollTimer = setTimeout(poll, pollAfterMs)
+    })
+  }
+
+  function stopPolling() {
+    if (pollTimer) {
+      clearTimeout(pollTimer)
+      pollTimer = null
+    }
+    isLoading.value = false
+    activeRunId.value = null
+    const last = messages.value[messages.value.length - 1]
+    if (last?.streaming) last.streaming = false
+  }
+
+  async function sendMessage(content: string, clarifyReply?: { runId: string; selectedOptionId: string; text: string }) {
     if (!content.trim() || isLoading.value) return
 
-    const userMsg: ChatMessage = {
-      id: generateId(),
-      role: 'user',
-      content: content.trim(),
-      createdAt: new Date().toISOString(),
+    if (!clarifyReply) {
+      messages.value.push({
+        id: generateId(),
+        role: 'user',
+        content: content.trim(),
+        createdAt: new Date().toISOString(),
+      })
     }
-    messages.value.push(userMsg)
 
     const assistantMsg: ChatMessage = {
       id: generateId(),
       role: 'assistant',
-      content: '',
+      content: '问数任务已提交...',
       createdAt: new Date().toISOString(),
       streaming: true,
+      runStatus: 'accepted',
     }
     messages.value.push(assistantMsg)
-
     isLoading.value = true
-    abortController = new AbortController()
 
     try {
-      if (useStreamMode.value) {
-        await new Promise<void>((resolve, reject) => {
-          streamChat({
-            message: content.trim(),
-            sessionId: sessionId.value,
-            signal: abortController!.signal,
-            onChunk: (chunk) => {
-              assistantMsg.content += chunk
-            },
-            onDone: () => {
-              assistantMsg.streaming = false
-              resolve()
-            },
-            onError: (err) => reject(err),
-          })
+      if (useAsyncMode.value) {
+        const created = await createQueryRunApi({
+          question: content.trim(),
+          sessionId: sessionId.value,
+          context: { client: 'pc', timezone: 'Asia/Shanghai' },
+          clarifyReply,
         })
+        assistantMsg.runId = created.runId
+        assistantMsg.traceId = created.traceId
+        await pollRun(created.runId, assistantMsg, created.pollAfterMs)
       } else {
-        throw new Error('force sync')
-      }
-    } catch {
-      // 流式失败，fallback 到同步
-      try {
-        assistantMsg.content = ''
-        const reply = await syncChat(content.trim(), sessionId.value)
-        assistantMsg.content = reply
-      } catch (err) {
-        assistantMsg.content = '抱歉，服务暂时不可用，请稍后再试。'
-        console.error(err)
-      } finally {
+        const result = await syncQueryApi(content.trim(), sessionId.value)
+        assistantMsg.content = result.summary
+        assistantMsg.result = result
+        assistantMsg.runStatus = 'success'
         assistantMsg.streaming = false
       }
+    } catch (err) {
+      assistantMsg.streaming = false
+      assistantMsg.runStatus = 'failed'
+      assistantMsg.error = err as ApiErrorBody
+      assistantMsg.content = (err as ApiErrorBody)?.message ?? '问数失败，请稍后重试'
     } finally {
       isLoading.value = false
-      abortController = null
     }
   }
 
-  function stopStreaming() {
-    abortController?.abort()
-    isLoading.value = false
-    const last = messages.value[messages.value.length - 1]
-    if (last?.streaming) {
-      last.streaming = false
+  async function submitClarify(runId: string, selectedOptionId: string, text: string, question: string) {
+    const idx = messages.value.findIndex((m) => m.pendingClarifyRunId === runId)
+    if (idx >= 0) messages.value[idx].pendingClarifyRunId = undefined
+    await sendMessage(question, { runId, selectedOptionId, text })
+  }
+
+  async function retryLast(question: string) {
+    await sendMessage(question)
+  }
+
+  function newChat() {
+    stopPolling()
+    messages.value = []
+    const newId = `session-${Date.now()}`
+    sessionId.value = newId
+    if (USE_MOCK) {
+      sessions.value.unshift({
+        sessionId: newId,
+        title: '新会话',
+        lastMessageAt: new Date().toISOString(),
+        messageCount: 0,
+      })
     }
   }
 
   function clearMessages() {
+    stopPolling()
     messages.value = []
-    sessionId.value = generateId()
-    historyPage.value = 0
-    hasMoreHistory.value = true
+  }
+
+  function removeSession(id: string) {
+    if (USE_MOCK) {
+      const idx = sessions.value.findIndex((s) => s.sessionId === id)
+      if (idx >= 0) sessions.value.splice(idx, 1)
+      if (sessionId.value === id) {
+        if (sessions.value.length) {
+          switchSession(sessions.value[0].sessionId)
+        } else {
+          newChat()
+        }
+      }
+    }
   }
 
   return {
     messages,
     sessionId,
+    sessions,
     isLoading,
     isLoadingHistory,
     hasMoreHistory,
-    useStreamMode,
+    useAsyncMode,
+    activeRunId,
+    loadSessions,
+    switchSession,
     loadHistory,
     sendMessage,
-    stopStreaming,
+    submitClarify,
+    retryLast,
+    stopPolling,
+    newChat,
     clearMessages,
+    removeSession,
   }
 })

@@ -133,29 +133,41 @@ async function handleTagSave() {
 </script>
 
 <style scoped lang="scss">
+@use '@/assets/styles/chat-theme.scss' as chat;
+
 .quick-tags {
-  padding: 8px 16px 0;
+  width: 75%;
+  max-width: 820px;
+  padding: 0 0 10px;
 
   &__list {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
     align-items: center;
+    justify-content: center;
   }
 
   &__item {
     cursor: pointer;
     transition: all 0.2s;
+    background: rgba(255, 255, 255, 0.5);
+    border-color: rgba(255, 255, 255, 0.7);
+    color: chat.$chat-text-secondary;
+    box-shadow: chat.$chat-shadow-soft;
 
     &:hover {
-      background: var(--color-primary-light);
-      border-color: var(--color-primary);
-      color: var(--color-primary);
+      background: rgba(250, 245, 255, 0.9);
+      border-color: rgba(196, 181, 253, 0.8);
+      color: chat.$chat-accent-purple;
     }
   }
 
   &__add {
     border-style: dashed;
+    background: rgba(255, 255, 255, 0.3);
+    color: chat.$chat-text-muted;
+    border-color: rgba(148, 163, 184, 0.3);
   }
 }
 </style>

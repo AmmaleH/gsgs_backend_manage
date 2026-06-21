@@ -1,22 +1,16 @@
 <template>
   <div class="page-container">
     <div class="page-header">
-      <h2 class="page-header__title">基础数据管理</h2>
+      <h2 class="page-header__title">SQL 白名单</h2>
       <el-button v-if="hasManagePermission('basic-data')" type="primary" :icon="Plus" @click="handleCreateOpen">
-        新建数据
+        新建白名单表
       </el-button>
     </div>
-
-    <el-tabs v-model="activeTab" @tab-change="handleTabChange">
-      <el-tab-pane label="数字人" name="digital_human" />
-      <el-tab-pane label="问数" name="data_query" />
-      <el-tab-pane label="问答" name="qa" />
-    </el-tabs>
 
     <div class="filter-bar">
       <el-input
         v-model="keyword"
-        placeholder="搜索名称或编码"
+        placeholder="搜索表名"
         clearable
         style="width: 240px"
         @keyup.enter="handleSearch"
@@ -26,13 +20,14 @@
     </div>
 
     <ManageCardGrid :loading="isLoading" :empty="tableList.length === 0">
-      <ManageCardItem v-for="row in tableList" :key="row.id" :title="row.name">
+      <ManageCardItem v-for="row in tableList" :key="row.id" :title="row.tableName">
         <template #tag>
-          <el-tag :type="row.status === 1 ? 'success' : 'info'" size="small">
-            {{ row.status === 1 ? '启用' : '禁用' }}
+          <el-tag :type="row.status === 'published' ? 'success' : 'info'" size="small">
+            {{ row.status === 'published' ? '已发布' : '草稿' }}
           </el-tag>
         </template>
-        <ManageCardField label="编码" :value="row.code" />
+        <ManageCardField label="业务域" :value="row.businessDomain" />
+        <ManageCardField label="允许列" :value="row.allowedColumns.join('、') || '-'" />
         <ManageCardField label="更新时间" :value="row.updatedAt" />
         <template #actions>
           <ManageRowActions
@@ -55,22 +50,28 @@
 
     <el-dialog
       v-model="isDialogVisible"
-      :title="editingRow ? '编辑基础数据' : '新建基础数据'"
-      width="520px"
+      :title="editingRow ? '编辑白名单表' : '新建白名单表'"
+      width="560px"
       destroy-on-close
     >
-      <el-form :model="formModel" label-width="80px">
-        <el-form-item label="名称" required>
-          <el-input v-model="formModel.name" placeholder="请输入名称" />
+      <el-form :model="formModel" label-width="100px">
+        <el-form-item label="表名" required>
+          <el-input v-model="formModel.tableName" placeholder="如 fact_station_traffic_daily" />
         </el-form-item>
-        <el-form-item label="编码">
-          <el-input v-model="formModel.code" placeholder="请输入编码" />
+        <el-form-item label="业务域">
+          <el-input v-model="formModel.businessDomain" placeholder="如 traffic / etc" />
         </el-form-item>
-        <el-form-item label="描述">
-          <el-input v-model="formModel.description" type="textarea" :rows="3" placeholder="请输入描述" />
+        <el-form-item label="允许列">
+          <el-input
+            v-model="formModel.allowedColumnsText"
+            placeholder="多个列名用逗号分隔"
+          />
         </el-form-item>
         <el-form-item label="状态">
-          <el-switch v-model="formModel.status" :active-value="1" :inactive-value="0" />
+          <el-radio-group v-model="formModel.status">
+            <el-radio value="draft">草稿</el-radio>
+            <el-radio value="published">已发布</el-radio>
+          </el-radio-group>
         </el-form-item>
       </el-form>
       <template #footer>
@@ -81,10 +82,9 @@
 
     <ManageItemDetailDialog
       v-model:visible="isDetailVisible"
-      title="基础数据详情"
+      title="SQL 白名单详情"
       :data="detailRow as Record<string, unknown> | null"
       :fields="detailFields"
-      :loading="isDetailLoading"
     />
   </div>
 </template>
@@ -102,28 +102,32 @@ import ManageItemDetailDialog from '@/components/manage/ManageItemDetailDialog.v
 import ManageRowActions from '@/components/manage/ManageRowActions.vue'
 import { usePermission } from '@/composables/usePermission'
 import type { DetailField } from '@/types/manage'
-import { formatBasicDataType, formatRecordStatus } from '@/utils/manage'
 
 import { useBasicDataManage } from './useBasicDataManage'
 
 const { hasManagePermission } = usePermission()
 
 const detailFields: DetailField[] = [
-  { prop: 'name', label: '名称' },
-  { prop: 'code', label: '编码' },
-  { prop: 'type', label: '类型', formatter: (val) => formatBasicDataType(val) },
-  { prop: 'description', label: '描述' },
-  { prop: 'status', label: '状态', formatter: (val) => formatRecordStatus(val) },
+  { prop: 'tableName', label: '表名' },
+  { prop: 'businessDomain', label: '业务域' },
+  {
+    prop: 'allowedColumns',
+    label: '允许列',
+    formatter: (val) => (Array.isArray(val) ? val.join('、') : String(val ?? '-')),
+  },
+  {
+    prop: 'status',
+    label: '状态',
+    formatter: (val) => (val === 'published' ? '已发布' : '草稿'),
+  },
   { prop: 'updatedAt', label: '更新时间' },
 ]
 
 const {
-  activeTab,
   tableList,
   isLoading,
   isDialogVisible,
   isDetailVisible,
-  isDetailLoading,
   isSubmitting,
   editingRow,
   detailRow,
@@ -131,7 +135,6 @@ const {
   pagination,
   formModel,
   fetchTableList,
-  handleTabChange,
   handleSearch,
   handlePageChange,
   handlePageSizeChange,

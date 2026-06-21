@@ -24,6 +24,8 @@ export enum EPermissionCode {
   BASIC_DATA_MANAGE = 'basic-data:manage',
   /** 权限管理（仅超级管理员默认可见，也可赋权） */
   PERMISSION_MANAGE = 'permission:manage',
+  /** 问数审计日志-查看 */
+  QUERY_LOG_VIEW = 'query-log:view',
 }
 
 /** 超级管理员默认账号名（Mock） */
@@ -39,6 +41,7 @@ export const PERMISSION_LABEL_MAP: Record<EPermissionCode, string> = {
   [EPermissionCode.BASIC_DATA_VIEW]: '基础数据管理-查看',
   [EPermissionCode.BASIC_DATA_MANAGE]: '基础数据管理-操作',
   [EPermissionCode.PERMISSION_MANAGE]: '权限管理',
+  [EPermissionCode.QUERY_LOG_VIEW]: '问数审计日志-查看',
 }
 
 /** 全部权限码列表（派生自 enum） */
@@ -67,20 +70,26 @@ export const MENU_CONFIG: MenuItemConfig[] = [
     icon: 'Setting',
     children: [
       {
+        path: '/query-logs',
+        title: '问数审计日志',
+        icon: 'Document',
+        permission: EPermissionCode.QUERY_LOG_VIEW,
+      },
+      {
         path: '/agent',
-        title: 'Agent 管理',
+        title: '场景路由规则',
         icon: 'Cpu',
         permission: EPermissionCode.AGENT_VIEW,
       },
       {
         path: '/knowledge',
-        title: '知识库管理',
+        title: 'Prompt 配置',
         icon: 'Collection',
         permission: EPermissionCode.KNOWLEDGE_VIEW,
       },
       {
         path: '/basic-data',
-        title: '基础数据管理',
+        title: 'SQL 白名单',
         icon: 'DataLine',
         permission: EPermissionCode.BASIC_DATA_VIEW,
       },

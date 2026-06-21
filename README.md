@@ -55,7 +55,7 @@ yarn preview
 | 变量名 | 说明 | 开发默认值 |
 |--------|------|-----------|
 | `VITE_APP_TITLE` | 应用标题 | GS智能管理系统 |
-| `VITE_API_BASE_URL` | 后端 API 地址 | http://localhost:8080 |
+| `VITE_API_BASE_URL` | 后端 API 地址 | /api |
 | `VITE_USE_MOCK` | 是否启用 Mock 数据 | true |
 
 - 开发环境配置：`.env.development`
@@ -68,7 +68,8 @@ yarn preview
 
 ```
 src/
-├── api/                  # 接口请求模块（按业务拆分）
+├── mock/                 # Mock 数据中心（VITE_USE_MOCK=true 时使用）
+├── api/                  # 接口请求模块（/api/v1 对齐）
 ├── assets/styles/        # 全局样式与 SCSS 变量
 ├── components/           # 公共组件
 │   └── chat/             # 聊天相关组件
@@ -82,9 +83,10 @@ src/
 └── views/                # 页面视图
     ├── login/            # 登录页
     ├── chat/             # 智能对话页（默认首页）
-    ├── agent/            # Agent 管理
-    ├── knowledge/        # 知识库管理
-    └── basic-data/       # 基础数据管理
+    ├── query-logs/       # 问数审计日志
+    ├── agent/            # 场景路由规则
+    ├── knowledge/        # Prompt 配置
+    ├── basic-data/       # SQL 白名单
     └── permission/       # 权限管理
 ```
 
@@ -105,34 +107,45 @@ src/
 
 - 路由：`/` → 已登录跳转 `/chat`，未登录跳转 `/login`
 - 首次进入展示数字人欢迎动画（仅首次，记录于 localStorage）
-- 左侧气泡为机器人回复，右侧气泡为用户输入
-- 向上滑动加载历史对话记录
+- 左侧历史会话列表，支持切换会话并回显 `resultSnapshot`
+- 异步问数：`POST /runs/query` + 轮询 `GET /runs/{runId}`，展示进度、澄清、表格结果
+- 同步问数：`POST /query`（可通过开关切换）
 - 底栏上方快捷标签，支持增删改（右键编辑）
-- 流式对话显示，接口不支持时自动降级为同步模式
-- 可通过开关手动切换流式/同步模式
 
-### 3. Agent 管理
+**Mock 问数场景（调试阶段）：**
+
+| 输入关键词 | 行为 |
+|-----------|------|
+| 默认问题 | 成功返回交通量表格 |
+| 含「澄清/多个/相近」 | 第 2 次轮询返回澄清卡片 |
+| 含「失败/error」 | 返回失败态，支持重试 |
+| 含「部分/partial」 | 返回 partial + warning |
+
+### 3. 问数审计日志
+
+- 路由：`/query-logs`
+- 对接 `GET /admin/query-logs`，支持关键词与状态筛选
+- 点击「查看 Trace」打开抽屉，展示 `GET /admin/traces/{traceId}` 详情
+
+### 4. 场景路由规则
 
 - 路由：`/agent`
-- Tab 分类：问答 Agent / 数字人 Agent / 问数 Agent
-- 支持列表查询、新建、编辑、删除（需对应 `:manage` 操作权限）
-- 每条记录支持**查看详情**
+- 对接 `GET/POST /admin/routing-rules`
+- 卡片列表 + 增删改查
 
-### 4. 知识库管理
+### 5. Prompt 配置
 
 - 路由：`/knowledge`
-- Tab 分类：数字人知识库 / 问答知识库
-- 支持列表查询、新建、编辑、删除（需对应 `:manage` 操作权限）
-- 每条记录支持**查看详情**
+- 对接 `GET/POST /admin/prompts`
+- 卡片列表 + 增删改查
 
-### 5. 基础数据管理
+### 6. SQL 白名单
 
 - 路由：`/basic-data`
-- Tab 分类：数字人 / 问数 / 问答
-- 支持列表查询、新建、编辑、删除（需对应 `:manage` 操作权限）
-- 每条记录支持**查看详情**
+- 对接 `GET/POST /admin/sql/tables`
+- 卡片列表 + 增删改查
 
-### 6. 权限管理
+### 7. 权限管理
 
 - 路由：`/permission`（需 `permission:manage` 权限，超级管理员默认可见）
 - **按账号管理权限**：账号增删改查，为每个账号配置权限列表
@@ -148,16 +161,19 @@ src/
 
 ## 接口文档
 
-> 对接时将 `.env.development` 中 `VITE_USE_MOCK` 设为 `false`，并配置 `VITE_API_BASE_URL`。
+接口规范见 `frontend-api.md`（Base URL: `/api/v1`，认证: `Authorization: Bearer {accessToken}`）。
 
-| 模块 | 文档链接 |
-|------|----------|
-| 认证模块 | xxx |
-| 对话模块 | xxx |
-| Agent 管理 | xxx |
-| 知识库管理 | xxx |
-| 基础数据管理 | xxx |
-| 权限管理 | xxx |
+> 对接时将 `.env.development` 中 `VITE_USE_MOCK` 设为 `false`，并配置 `VITE_API_BASE_URL=/api`。
+
+| 页面 | 接口 |
+|------|------|
+| 登录页 | `POST /auth/login` |
+| 智能对话 | `POST /runs/query`、`GET /runs/{runId}`、`GET /sessions`、`GET /sessions/{id}/messages` |
+| 问数审计日志 | `GET /admin/query-logs`、`GET /admin/traces/{traceId}` |
+| 场景路由规则 | `GET/POST /admin/routing-rules` |
+| Prompt 配置 | `GET/POST /admin/prompts` |
+| SQL 白名单 | `GET/POST /admin/sql/tables` |
+| 权限管理 | `GET/POST /admin/users`、`GET /admin/roles`、`GET /admin/permissions` |
 
 ## 开发代理
 
@@ -206,10 +222,10 @@ proxy: {
 清除 localStorage 中 `gs_welcome_shown` 键值。
 
 **Q: 如何对接真实后端？**
-将 `.env.development` 中 `VITE_USE_MOCK` 改为 `false`，并配置正确的 `VITE_API_BASE_URL`。
+将 `.env.development` 中 `VITE_USE_MOCK` 改为 `false`，并配置 `VITE_API_BASE_URL=/api`（Vite 代理至实际后端地址）。
 
-**Q: 流式对话不生效？**
-确认后端 `/chat/stream` 返回 `text/event-stream` 格式；若不支持，系统会自动 fallback 至 `/chat/send` 同步接口。
+**Q: 澄清交互如何体验？**
+在问数输入框发送含「澄清」或「多个」的问题，等待轮询后选择澄清选项。
 
 ## License
 
