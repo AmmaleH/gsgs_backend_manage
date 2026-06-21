@@ -17,6 +17,17 @@
       <el-tab-pane label="按权限管理账号" name="permission" />
     </el-tabs>
 
+    <el-alert
+      class="permission-page-alert"
+      type="info"
+      :closable="false"
+      show-icon
+    >
+      <template #title>
+        超级管理员默认拥有全部权限，配置账号时无需单独勾选。
+      </template>
+    </el-alert>
+
     <!-- 按账号维度 -->
     <template v-if="activeTab === 'account'">
       <div class="filter-bar">
@@ -96,7 +107,6 @@
           </template>
         </ManageCardItem>
       </ManageCardGrid>
-      <p class="permission-tip">超级管理员默认拥有全部权限，配置账号时无需单独勾选。</p>
     </template>
 
     <!-- 账号详情 -->
@@ -342,10 +352,14 @@ onMounted(() => {
   }
 }
 
-.permission-tip {
-  margin-top: 12px;
-  font-size: 13px;
-  color: var(--color-text-secondary);
+.permission-page-alert {
+  margin-bottom: 16px;
+
+  :deep(.el-alert__title) {
+    font-size: 13px;
+    font-weight: 400;
+    line-height: 1.5;
+  }
 }
 
 .dialog-subtitle {

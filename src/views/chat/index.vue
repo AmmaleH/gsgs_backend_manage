@@ -120,45 +120,63 @@
             class="chat-input"
             :class="{ 'is-focused': isInputFocused, 'has-content': !!inputText.trim() }"
           >
-            <el-input
-              ref="inputRef"
-              v-model="inputText"
-              type="textarea"
-              :rows="2"
-              placeholder="请输入经营分析问题..."
-              resize="none"
-              :disabled="chatStore.isLoading"
-              @focus="isInputFocused = true"
-              @blur="isInputFocused = false"
-              @keydown="handleKeydown"
-            />
-            <div class="chat-input__actions">
+            <div class="chat-input__editor">
+              <el-input
+                ref="inputRef"
+                v-model="inputText"
+                type="textarea"
+                :rows="2"
+                placeholder="请输入经营分析问题..."
+                resize="none"
+                :disabled="chatStore.isLoading"
+                @focus="isInputFocused = true"
+                @blur="isInputFocused = false"
+                @keydown="handleKeydown"
+              />
+            </div>
+            <div class="chat-input__toolbar">
               <el-tooltip content="异步问数（轮询 runs/{runId}）" placement="top">
-                <el-switch
-                  v-model="chatStore.useAsyncMode"
-                  size="small"
-                  inline-prompt
-                  active-text="异步"
-                  inactive-text="同步"
-                />
+                <div class="chat-mode-toggle" role="group" aria-label="问数模式">
+                  <button
+                    type="button"
+                    class="chat-mode-toggle__btn"
+                    :class="{ 'is-active': chatStore.useAsyncMode }"
+                    :disabled="chatStore.isLoading"
+                    @click="chatStore.useAsyncMode = true"
+                  >
+                    异步
+                  </button>
+                  <button
+                    type="button"
+                    class="chat-mode-toggle__btn"
+                    :class="{ 'is-active': !chatStore.useAsyncMode }"
+                    :disabled="chatStore.isLoading"
+                    @click="chatStore.useAsyncMode = false"
+                  >
+                    同步
+                  </button>
+                </div>
               </el-tooltip>
-              <el-button
-                v-if="chatStore.isLoading"
-                size="small"
-                class="chat-input__stop-btn"
-                @click="chatStore.stopPolling"
-              >
-                停止
-              </el-button>
-              <button
-                type="button"
-                class="chat-input__send-btn"
-                :disabled="!inputText.trim() || chatStore.isLoading"
-                @click="handleSendClick"
-              >
-                <el-icon v-if="chatStore.isLoading" class="is-loading"><Loading /></el-icon>
-                <el-icon v-else><Promotion /></el-icon>
-              </button>
+              <div class="chat-input__toolbar-actions">
+                <el-button
+                  v-if="chatStore.isLoading"
+                  size="small"
+                  round
+                  class="chat-input__stop-btn"
+                  @click="chatStore.stopPolling"
+                >
+                  停止
+                </el-button>
+                <button
+                  type="button"
+                  class="chat-input__send-btn"
+                  :disabled="!inputText.trim() || chatStore.isLoading"
+                  @click="handleSendClick"
+                >
+                  <el-icon v-if="chatStore.isLoading" class="is-loading"><Loading /></el-icon>
+                  <el-icon v-else><Promotion /></el-icon>
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -381,11 +399,20 @@ async function handleDeleteSession(id: string) {
   }
 
   &__action-icon {
-    padding: 4px;
-    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px;
+    border-radius: 8px;
+    font-size: 36px;
     color: chat.$chat-text-secondary;
     cursor: pointer;
     transition: color 0.2s, background 0.2s;
+
+    :deep(svg) {
+      width: 36px;
+      height: 36px;
+    }
 
     &:hover {
       color: chat.$chat-accent-purple;
@@ -547,19 +574,24 @@ async function handleDeleteSession(id: string) {
   width: 75%;
   max-width: 820px;
   display: flex;
-  align-items: flex-end;
-  gap: 12px;
-  padding: 12px 16px;
-  border-radius: 28px;
+  flex-direction: column;
+  gap: 0;
+  padding: 14px 16px 12px;
+  border-radius: 24px;
   transition: box-shadow 0.3s ease, border-color 0.3s ease;
-  background: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.72);
   backdrop-filter: blur(40px);
   -webkit-backdrop-filter: blur(40px);
-  border: 1px solid rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.65);
   box-shadow: chat.$chat-shadow-input;
 
   &.is-focused {
     @include chat.chat-focus-glow;
+  }
+
+  &__editor {
+    width: 100%;
+    min-width: 0;
   }
 
   :deep(.el-textarea__inner) {
@@ -567,51 +599,66 @@ async function handleDeleteSession(id: string) {
     border: none;
     box-shadow: none;
     color: chat.$chat-text-primary;
-    padding: 4px 0;
+    padding: 0;
     font-size: 14px;
+    line-height: 1.6;
 
     &::placeholder {
       color: chat.$chat-text-secondary;
     }
   }
 
-  &__actions {
+  &__toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(148, 163, 184, 0.15);
+  }
+
+  &__toolbar-actions {
     display: flex;
     align-items: center;
     gap: 8px;
     flex-shrink: 0;
-    padding-bottom: 2px;
   }
 
   &__stop-btn {
-    border-color: rgba(239, 68, 68, 0.3);
+    border-color: rgba(239, 68, 68, 0.25);
     color: #ef4444;
-    background: rgba(255, 255, 255, 0.5);
+    background: rgba(255, 255, 255, 0.6);
+    font-size: 12px;
   }
 
   &__send-btn {
-    width: 40px;
-    height: 40px;
+    width: 36px;
+    height: 36px;
     border: none;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: transform 0.2s, opacity 0.2s, box-shadow 0.2s;
-    background: rgba(148, 163, 184, 0.2);
+    transition: transform 0.2s, opacity 0.2s, box-shadow 0.2s, background 0.2s;
+    background: rgba(148, 163, 184, 0.18);
     color: chat.$chat-text-muted;
+
+    .el-icon {
+      font-size: 18px;
+    }
 
     &:disabled {
       cursor: not-allowed;
-      opacity: 0.5;
+      opacity: 0.45;
     }
   }
 
   &.has-content &__send-btn:not(:disabled) {
     background: chat.$chat-gradient-brand;
     color: #fff;
-    box-shadow: 0 4px 16px rgba(139, 92, 246, 0.25);
+    box-shadow: 0 4px 14px rgba(139, 92, 246, 0.3);
     position: relative;
     overflow: hidden;
 
@@ -623,8 +670,46 @@ async function handleDeleteSession(id: string) {
       animation: shimmer 2.5s infinite;
     }
 
-    &:hover {
-      transform: scale(1.05);
+    &:hover:not(:disabled) {
+      transform: scale(1.06);
+    }
+  }
+}
+
+.chat-mode-toggle {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px;
+  border-radius: 999px;
+  background: rgba(241, 245, 249, 0.9);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+
+  &__btn {
+    min-width: 44px;
+    padding: 5px 12px;
+    border: none;
+    border-radius: 999px;
+    background: transparent;
+    color: chat.$chat-text-secondary;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.2;
+    cursor: pointer;
+    transition: color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+
+    &.is-active {
+      color: #fff;
+      background: chat.$chat-gradient-purple;
+      box-shadow: 0 1px 6px rgba(139, 92, 246, 0.35);
+    }
+
+    &:not(.is-active):hover:not(:disabled) {
+      color: chat.$chat-accent-purple;
+    }
+
+    &:disabled {
+      cursor: not-allowed;
+      opacity: 0.5;
     }
   }
 }

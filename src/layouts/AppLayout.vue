@@ -94,6 +94,7 @@ import {
   Collection,
   Cpu,
   DataLine,
+  Document,
   Expand,
   Fold,
   Monitor,
@@ -117,6 +118,7 @@ const isCollapsed = ref(false)
 const iconMap: Record<string, Component> = {
   ChatDotRound,
   Setting,
+  Document,
   Cpu,
   Collection,
   DataLine,
@@ -242,11 +244,36 @@ function handleOpenSettings() {
     background: rgba(64, 158, 255, 0.15) !important;
   }
 
-  :deep(.el-menu-item),
-  :deep(.el-sub-menu__title) {
+  :deep(.el-menu-item) {
     border-radius: 6px;
     margin: 2px 8px;
     width: calc(100% - 16px);
+  }
+
+  :deep(.el-sub-menu) {
+    margin: 2px 8px;
+    width: calc(100% - 16px);
+    border-radius: 6px;
+
+    .el-sub-menu__title {
+      border-radius: 6px;
+      padding-right: 36px;
+    }
+
+    .el-sub-menu__icon-arrow {
+      right: 12px;
+      margin-top: -7px;
+    }
+
+    .el-menu {
+      background: transparent;
+    }
+
+    .el-menu-item {
+      margin: 2px 0;
+      width: 100%;
+      min-width: auto;
+    }
   }
 }
 
